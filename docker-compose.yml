@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres_lab2
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lab_db2
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d         
+      - ./data:/data                             
+
+  spark:
+    image: spark:python3
+    container_name: spark_lab2
+    command: /opt/spark/sbin/start-master.sh && tail -f /dev/null
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      SPARK_MODE: master
+      SPARK_MASTER_WEBUI_PORT: 8080
+      SPARK_NO_DAEMONIZE: true
+    depends_on:
+      - postgres
+    volumes:
+      - ./scripts:/opt/etl/scripts
+      - ./jars:/opt/etl/drivers 
+  
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3.13.40
+    container_name: clickhouse_lab2
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: "123"
+      CLICKHOUSE_DB: reports
+    volumes:
+      - ./clickhouse_init:/docker-entrypoint-initdb.d
+    depends_on:
+      - postgres
